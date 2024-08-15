@@ -1,0 +1,199 @@
+[package]
+name = "quantum_voting__backend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+use serde::{Serialize, Deserialize};
+use sha2::{Sha256, Digest};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Block {
+    index: u64,
+    timestamp: u128,
+    previous_hash: String,
+    hash: String,
+    data: String, // This will store the encrypted vote data
+}
+
+#[derive(Debug)]
+struct Blockchain {
+    chain: Vec<Block>,
+}
+
+impl Blockchain {
+    fn new() -> Self {
+        Blockchain {
+            chain: vec![Blockchain::create_genesis_block()],
+        }
+    }
+
+    fn create_genesis_block() -> Block {
+        Block {
+            index: 0,
+            timestamp: Blockchain::current_timestamp(),
+            previous_hash: String::from("0"),
+            hash: String::new(),
+            data: String::from("Genesis Block"),
+        }
+    }
+
+    fn current_timestamp() -> u128 {
+        let start = SystemTime::now();
+        let since_the_epoch = start.duration_since(UNIX_EPOCH).expect("Time went backwards");
+        since_the_epoch.as_millis()
+    }
+
+    fn add_block(&mut self, data: String) {
+        let previous_block = self.chain.last().unwrap().clone();
+        let new_block = Block {
+            index: previous_block.index + 1,
+            timestamp: Blockchain::current_timestamp(),
+            previous_hash: previous_block.hash.clone(),
+            hash: Blockchain::calculate_hash(
+                previous_block.index + 1,
+                Blockchain::current_timestamp(),
+                &previous_block.hash,
+                &data,
+            ),
+            data,
+        };
+        self.chain.push(new_block);
+    }
+
+    fn calculate_hash(index: u64, timestamp: u128, previous_hash: &str, data: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(index.to_string());
+        hasher.update(timestamp.to_string());
+        hasher.update(previous_hash);
+        hasher.update(data);
+        format!("{:x}", hasher.finalize())
+    }
+
+    fn is_chain_valid(&self) -> bool {
+        for i in 1..self.chain.len() {
+            let current_block = &self.chain[i];
+            let previous_block = &self.chain[i - 1];
+
+            if current_block.hash != Blockchain::calculate_hash(
+                current_block.index,
+                current_block.timestamp,
+                &current_block.previous_hash,
+                &current_block.data,
+            ) {
+                return false;
+            }
+
+            if current_block.previous_hash != previous_block.hash {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+fn main() {
+    let mut blockchain = Blockchain::new();
+
+    // Example: Adding votes as blocks
+    blockchain.add_block(String::from("Vote: Encrypted data 1"));
+    blockchain.add_block(String::from("Vote: Encrypted data 2"));
+
+    println!("{:?}", blockchain);
+    println!("Is blockchain valid? {}", blockchain.is_chain_valid());
+}
+
+[dependencies]
+candid = "0.10"
+ic-cdk = "0.13"
+ic-cdk-timers = "0.7" # Feel free to remove this dependency if you don't need timers
+use ic_cdk::export::candid::{CandidType, Deserialize};
+use ic_cdk_macros::*;
+
+#[derive(CandidType, Deserialize, Clone)]
+struct Vote {
+    voter_id: String,
+    candidate_id: u32,
+    encrypted_vote: String,
+}
+
+#[derive(CandidType, Deserialize, Clone)]
+struct Block {
+    index: u64,
+    timestamp: u128,
+    previous_hash: String,
+    hash: String,
+    data: Vote,
+}
+
+static mut BLOCKCHAIN: Vec<Block> = Vec::new();
+
+#[update]
+fn cast_vote(vote: Vote) -> String {
+    unsafe {
+        let previous_block = BLOCKCHAIN.last().unwrap_or(&Block {
+            index: 0,
+            timestamp: 0,
+            previous_hash: "0".to_string(),
+            hash: "0".to_string(),
+            data: Vote {
+                voter_id: "".to_string(),
+                candidate_id: 0,
+                encrypted_vote: "".to_string(),
+            },
+        });
+
+        let new_block = Block {
+            index: previous_block.index + 1,
+            timestamp: ic_cdk::api::time(),
+            previous_hash: previous_block.hash.clone(),
+            hash: calculate_hash(previous_block.index + 1, ic_cdk::api::time(), &previous_block.hash, &vote),
+            data: vote,
+        };
+
+        BLOCKCHAIN.push(new_block.clone());
+        format!("Vote recorded in block: {:?}", new_block)
+    }
+}
+
+#[query]
+fn get_blockchain() -> Vec<Block> {
+    unsafe { BLOCKCHAIN.clone() }
+}
+
+fn calculate_hash(index: u64, timestamp: u128, previous_hash: &str, vote: &Vote) -> String {
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(index.to_string());
+    hasher.update(timestamp.to_string());
+    hasher.update(previous_hash);
+    hasher.update(format!("{:?}", vote));
+    format!("{:x}", hasher.finalize())
+}
+
+#[query]
+fn is_blockchain_valid() -> bool {
+    unsafe {
+        for i in 1..BLOCKCHAIN.len() {
+            let current_block = &BLOCKCHAIN[i];
+            let previous_block = &BLOCKCHAIN[i - 1];
+
+            if current_block.hash != calculate_hash(
+                current_block.index,
+                current_block.timestamp,
+                &current_block.previous_hash,
+                &current_block.data,
+            ) {
+                return false;
+            }
+
+            if current_block.previous_hash != previous_block.hash {
+                return false;
+            }
+        }
+        true
+    }
+}
