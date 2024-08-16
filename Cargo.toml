@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/Quantum-Resistant-Voting-backend"
+]
+resolver = "2"

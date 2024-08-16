@@ -1,0 +1,19 @@
+type Vote = record {
+  voter_id: text;
+  candidate_id: text;
+  encrypted_vote: text;
+};
+
+type Block = record {
+  index: nat64;
+  timestamp: nat;
+  previous_hash: text;
+  hash: text;
+  data: Vote;
+};
+
+service : {
+  cast_vote: (Vote) -> (text) query;
+  get_blockchain: () -> (vec Block) query;
+  is_blockchain_valid: () -> (bool) query;
+}
