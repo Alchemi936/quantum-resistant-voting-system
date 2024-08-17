@@ -1,111 +1,61 @@
-# quantum-resistant-voting-system
+# `Quantum-Resistant-Voting`
 
-## Overview
+Welcome to your new `Quantum-Resistant-Voting` project and to the Internet Computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
 
-The Quantum-Resistant Blockchain Voting System is designed to provide a secure, private, and tamper-proof voting process using advanced quantum-resistant encryption techniques. This system ensures that votes are counted accurately and securely, leveraging blockchain technology to create a decentralized and transparent election process.
+To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
 
-### Features
+To learn more before you start working with `Quantum-Resistant-Voting`, see the following documentation available online:
 
-- **Quantum-Resistant Encryption:** Uses state-of-the-art encryption algorithms to protect against quantum threats.
-- **Decentralized Voting:** Ensures transparency and tamper-proof operations.
-- **Secure and Private:** Votes are encrypted and verified using cutting-edge cryptographic methods.
+- [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
+- [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
+- [Rust Canister Development Guide](https://internetcomputer.org/docs/current/developer-docs/backend/rust/)
+- [ic-cdk](https://docs.rs/ic-cdk)
+- [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
+- [Candid Introduction](https://internetcomputer.org/docs/current/developer-docs/backend/candid/)
 
-## Technologies
+If you want to start working on your project right away, you might want to try the following commands:
 
-- **Smart Contracts:** Written in [Rust/Motoko] for deployment on the Internet Computer (ICP).
-- **Frontend:** Built with HTML, CSS, and JavaScript.
-- **Backend:** Node.js for user registration and authentication.
-- **Quantum-Resistant Encryption Algorithms:** Implementations of lattice-based encryption, hash-based cryptography, and code-based encryption.
+```bash
+cd Quantum-Resistant-Voting/
+dfx help
+dfx canister --help
+```
 
-## Getting Started
+## Running the project locally
 
-### Prerequisites
+If you want to test your project locally, you can use the following commands:
 
-- [Node.js](https://nodejs.org/) (v14.0.0 or higher)
-- [DFX](https://sdk.dfinity.org/docs/developers-guide/quickstart.html)
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Ganache](https://www.trufflesuite.com/ganache) (for Ethereum local testing)
-- [Truffle](https://www.trufflesuite.com/truffle) (for Ethereum smart contract development)
+```bash
+# Starts the replica, running in the background
+dfx start --background
 
-### Installation
-
-1. Clone the Repository:
-
-   ```bash
-   git clone https://github.com/YourUsername/quantum-resistant-voting-system.git
-   cd quantum-resistant-voting-system
-
-2.  Install Dependencies:
-
-For the Node.js backend:
-
-cd backend
-npm install
-
-For the frontend:
-
-cd frontend
-npm install
-
-For ICP development:
-
-dfx new quantum_voting_system
-
-
-3. Set Up Ganache (for Ethereum testing):
-
-Start Ganache:
-ganache-cli
-
-Deploy Smart Contracts (for Ethereum testing):
-Compile and migrate contracts:
-
-truffle compile
-truffle migrate --network development
-
-
-Development
-User Registration Module:
-
-The Node.js server handles user registration and authentication.
-Routes are set up in server.js for user registration and login.
-Voting Module:
-
-Implemented using Rust/Motoko on the ICP.
-Quantum-resistant encryption algorithms are integrated to secure votes.
-Frontend Development:
-
-Connects to the backend and ICP canisters for interacting with the voting system.
-Testing
-
-Unit Tests: Use Truffle and Mocha for smart contract testing.
-Integration Tests: Ensure the integration between the frontend, backend, and blockchain works seamlessly.
-Manual Testing: Deploy on ICP and manually verify voting functionalities.
-
-Deployment
-1.Deploy Canisters on ICP:
+# Deploys your canisters to the replica and generates your candid interface
 dfx deploy
+```
 
-2.Deploy Frontend:
-Update the frontend configuration to point to the deployed ICP canisters.
+Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.
 
-Future Enhancements
-Integration with Internet Identity for secure user authentication.
-Enhancements in quantum-resistant algorithms based on emerging research.
-Expansion of voting modules to support various types of elections.
-Contributing
+If you have made changes to your backend canister, you can generate a new candid interface with
 
-We welcome contributions to improve the Quantum-Resistant Blockchain Voting System. To contribute:
+```bash
+npm run generate
+```
 
-Fork the repository.
-Create a new branch: git checkout -b feature/YourFeature
-Make your changes and commit: git commit -am 'Add new feature'
-Push to the branch: git push origin feature/YourFeature
-Create a Pull Request with a detailed description of your changes.
-License
-This project is licensed under the MIT License. See the LICENSE file for details.
+at any time. This is recommended before starting the frontend development server, and will be run automatically any time you run `dfx deploy`.
 
-Contact
-For questions or feedback, please contact us at wairimashiphrah@gmail.com.
+If you are making frontend changes, you can start a development server with
 
+```bash
+npm start
+```
 
+Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
+
+### Note on frontend environment variables
+
+If you are hosting frontend code somewhere without using DFX, you may need to make one of the following adjustments to ensure your project does not fetch the root key in production:
+
+- set`DFX_NETWORK` to `ic` if you are using Webpack
+- use your own preferred method to replace `process.env.DFX_NETWORK` in the autogenerated declarations
+  - Setting `canisters -> {asset_canister_id} -> declarations -> env_override to a string` in `dfx.json` will replace `process.env.DFX_NETWORK` with the string in the autogenerated declarations
+- Write your own `createActor` constructor
